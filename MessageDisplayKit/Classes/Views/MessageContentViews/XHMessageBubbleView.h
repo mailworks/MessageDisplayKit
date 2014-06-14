@@ -15,6 +15,9 @@
 #import "XHBubblePhotoImageView.h"
 #import "SETextView.h"
 
+#import "FLAnimatedImageView.h"
+#import "FLAnimatedImage.h"
+
 // Macro
 #import "XHMacro.h"
 
@@ -30,7 +33,6 @@
 
 #define kXHMessageBubbleDisplayMaxLine 200
 
-#define kXHTextFontSize 16
 #define kXHTextLineSpacing 3.0
 
 @interface XHMessageBubbleView : UIView
@@ -51,9 +53,19 @@
 @property (nonatomic, weak, readonly) UIImageView *bubbleImageView;
 
 /**
+ *  专门用于gif表情显示控件
+ */
+@property (nonatomic, weak, readonly) FLAnimatedImageView *emotionImageView;
+
+/**
  *  用于显示语音的控件，并且支持播放动画
  */
 @property (nonatomic, weak, readonly) UIImageView *animationVoiceImageView;
+
+/**
+ *  用于显示语音时长的label
+ */
+@property (nonatomic, weak) UILabel *voiceDurationLabel;
 
 /**
  *  用于显示仿微信发送图片的控件

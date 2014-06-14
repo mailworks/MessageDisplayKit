@@ -9,7 +9,7 @@
 #import "XHMessageTableViewCell.h"
 
 static const CGFloat kXHLabelPadding = 5.0f;
-static const CGFloat kXHTimeStampLabelHeight = 15.0f;
+static const CGFloat kXHTimeStampLabelHeight = 20.0f;
 
 static const CGFloat kXHAvatorPaddingX = 8.0;
 static const CGFloat kXHAvatorPaddingY = 15;
@@ -25,7 +25,7 @@ static const CGFloat kXHBubbleMessageViewPadding = 8;
 
 @property (nonatomic, weak, readwrite) UIButton *avatorButton;
 
-@property (nonatomic, weak, readwrite) UILabel *timestampLabel;
+@property (nonatomic, weak, readwrite) LKBadgeView *timestampLabel;
 
 /**
  *  是否显示时间轴Label
@@ -165,10 +165,11 @@ static const CGFloat kXHBubbleMessageViewPadding = 8;
     if (message.avator) {
         [self.avatorButton setImage:message.avator forState:UIControlStateNormal];
         if (message.avatorUrl) {
-            [self.avatorButton setImageUrl:message.avatorUrl];
+            self.avatorButton.messageAvatorType = XHMessageAvatorTypeSquare;
+            [self.avatorButton setImageWithURL:[NSURL URLWithString:message.avatorUrl] placeholer:[UIImage imageNamed:@"avator"]];
         }
     } else {
-        [self.avatorButton setImage:[XHMessageAvatorFactory avatarImageNamed:[UIImage imageNamed:@"avator"] messageAvatorType:XHMessageAvatorSquare] forState:UIControlStateNormal];
+        [self.avatorButton setImage:[XHMessageAvatorFactory avatarImageNamed:[UIImage imageNamed:@"avator"] messageAvatorType:XHMessageAvatorTypeSquare] forState:UIControlStateNormal];
     }
 }
 
@@ -181,23 +182,26 @@ static const CGFloat kXHBubbleMessageViewPadding = 8;
         [self.messageBubbleView.bubblePhotoImageView removeGestureRecognizer:gesTureRecognizer];
     }
     switch (currentMediaType) {
-        case XHBubbleMessagePhoto:
-        case XHBubbleMessageVideo:
-        case XHBubbleMessageLocalPosition: {
+        case XHBubbleMessageMediaTypePhoto:
+        case XHBubbleMessageMediaTypeVideo:
+        case XHBubbleMessageMediaTypeLocalPosition: {
             UITapGestureRecognizer *tapGestureRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(sigleTapGestureRecognizerHandle:)];
             [self.messageBubbleView.bubblePhotoImageView addGestureRecognizer:tapGestureRecognizer];
             break;
         }
-        case XHBubbleMessageText:
-        case XHBubbleMessageVoice:
-        case XHBubbleMessageFace: {
+        case XHBubbleMessageMediaTypeText:
+        case XHBubbleMessageMediaTypeVoice: {
+            self.messageBubbleView.voiceDurationLabel.text = [NSString stringWithFormat:@"%@\'\'", message.voiceDuration];
+//            break;
+        }
+        case XHBubbleMessageMediaTypeEmotion: {
             UITapGestureRecognizer *tapGestureRecognizer;
-            if (currentMediaType == XHBubbleMessageText) {
+            if (currentMediaType == XHBubbleMessageMediaTypeText) {
                 tapGestureRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(doubleTapGestureRecognizerHandle:)];
             } else {
                 tapGestureRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(sigleTapGestureRecognizerHandle:)];
             }
-            tapGestureRecognizer.numberOfTapsRequired = (currentMediaType == XHBubbleMessageText ? 2 : 1);
+            tapGestureRecognizer.numberOfTapsRequired = (currentMediaType == XHBubbleMessageMediaTypeText ? 2 : 1);
             [self.messageBubbleView.bubbleImageView addGestureRecognizer:tapGestureRecognizer];
             break;
         }
@@ -331,17 +335,12 @@ static const CGFloat kXHBubbleMessageViewPadding = 8;
         
         // 1、是否显示Time Line的label
         if (!_timestampLabel) {
-            UILabel *timestampLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, kXHLabelPadding, 140, kXHTimeStampLabelHeight)];
+            LKBadgeView *timestampLabel = [[LKBadgeView alloc] initWithFrame:CGRectMake(0, kXHLabelPadding, 160, kXHTimeStampLabelHeight)];
             timestampLabel.autoresizingMask = UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleLeftMargin;
-            timestampLabel.backgroundColor = [UIColor colorWithWhite:0.000 alpha:0.380];
-            timestampLabel.textAlignment = NSTextAlignmentCenter;
+            timestampLabel.badgeColor = [UIColor colorWithWhite:0.000 alpha:0.380];
             timestampLabel.textColor = [UIColor whiteColor];
-            timestampLabel.font = [UIFont systemFontOfSize:12.0f];
+            timestampLabel.font = [UIFont systemFontOfSize:13.0f];
             timestampLabel.center = CGPointMake(CGRectGetWidth([[UIScreen mainScreen] bounds]) / 2.0, timestampLabel.center.y);
-            // 这个需要换个方案考虑，比如图片，或者绘制
-//            timestampLabel.layer.cornerRadius = 3.0f;
-//            timestampLabel.layer.masksToBounds = YES;
-            
             [self.contentView addSubview:timestampLabel];
             [self.contentView bringSubviewToFront:timestampLabel];
             _timestampLabel = timestampLabel;
@@ -362,7 +361,7 @@ static const CGFloat kXHBubbleMessageViewPadding = 8;
         }
         
         UIButton *avatorButton = [[UIButton alloc] initWithFrame:avatorButtonFrame];
-        [avatorButton setImage:[XHMessageAvatorFactory avatarImageNamed:[UIImage imageNamed:@"avator"] messageAvatorType:XHMessageAvatorCircle] forState:UIControlStateNormal];
+        [avatorButton setImage:[XHMessageAvatorFactory avatarImageNamed:[UIImage imageNamed:@"avator"] messageAvatorType:XHMessageAvatorTypeCircle] forState:UIControlStateNormal];
         [avatorButton addTarget:self action:@selector(avatorButtonClicked:) forControlEvents:UIControlEventTouchUpInside];
         [self.contentView addSubview:avatorButton];
         self.avatorButton = avatorButton;
@@ -448,6 +447,7 @@ static const CGFloat kXHBubbleMessageViewPadding = 8;
     self.messageBubbleView.displayTextView.text = nil;
     self.messageBubbleView.displayTextView.attributedText = nil;
     self.messageBubbleView.bubblePhotoImageView.messagePhoto = nil;
+    self.messageBubbleView.emotionImageView.animatedImage = nil;
     self.timestampLabel.text = nil;
 }
 

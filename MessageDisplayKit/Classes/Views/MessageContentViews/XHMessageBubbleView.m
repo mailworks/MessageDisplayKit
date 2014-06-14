@@ -8,10 +8,11 @@
 
 #import "XHMessageBubbleView.h"
 
+#import "XHMessageBubbleHelper.h"
+
 #define kMarginTop 8.0f
-#define kMarginBottom 4.0f
+#define kMarginBottom 2.0f
 #define kPaddingTop 4.0f
-#define kPaddingBottom 8.0f
 #define kBubblePaddingRight 10.0f
 
 #define kVoiceMargin 20.0f
@@ -23,6 +24,8 @@
 @property (nonatomic, weak, readwrite) SETextView *displayTextView;
 
 @property (nonatomic, weak, readwrite) UIImageView *bubbleImageView;
+
+@property (nonatomic, weak, readwrite) FLAnimatedImageView *emotionImageView;
 
 @property (nonatomic, weak, readwrite) UIImageView *animationVoiceImageView;
 
@@ -40,34 +43,20 @@
 
 #pragma mark - Bubble view
 
-+ (CGSize)textSizeForText:(NSString *)txt {
-    CGFloat maxWidth = CGRectGetWidth([[UIScreen mainScreen] bounds]) * (kIsiPad ? 0.8 : 0.55);
-    CGFloat maxHeight = MAX([XHMessageTextView numberOfLinesForMessage:txt],
-                            kXHMessageBubbleDisplayMaxLine) * [XHMessageInputView textViewLineHeight];
-    maxHeight += kXHAvatarImageSize;
-    
++ (CGFloat)neededWidthForText:(NSString *)text {
     CGSize stringSize;
-    
-    if (NSFoundationVersionNumber > NSFoundationVersionNumber_iOS_6_0) {
-        CGRect stringRect = [txt boundingRectWithSize:CGSizeMake(maxWidth, maxHeight)
-                                              options:NSStringDrawingUsesLineFragmentOrigin
-                                           attributes:@{ NSFontAttributeName : [[XHMessageBubbleView appearance] font] }
-                                              context:nil];
-        
-        stringSize = CGRectIntegral(stringRect).size;
-    }
-    else {
-        stringSize = [txt sizeWithFont:[[XHMessageBubbleView appearance] font]
-                     constrainedToSize:CGSizeMake(maxWidth, maxHeight)];
-    }
-    
-    return CGSizeMake(roundf(stringSize.width), roundf(stringSize.height));
+    stringSize = [text sizeWithFont:[[XHMessageBubbleView appearance] font]
+                     constrainedToSize:CGSizeMake(MAXFLOAT, 19)];
+    return roundf(stringSize.width);
 }
 
 + (CGSize)neededSizeForText:(NSString *)text {
     CGFloat maxWidth = CGRectGetWidth([[UIScreen mainScreen] bounds]) * (kIsiPad ? 0.8 : 0.55);
-    CGSize textSize = [SETextView frameRectWithAttributtedString:[[NSAttributedString alloc] initWithString:text] constraintSize:CGSizeMake(maxWidth, MAXFLOAT) lineSpacing:kXHTextLineSpacing font:[UIFont systemFontOfSize:kXHTextFontSize]].size;
-    return CGSizeMake(textSize.width + kBubblePaddingRight * 2 + kXHArrowMarginWidth, textSize.height + kPaddingTop + kPaddingBottom);
+    
+    CGFloat dyWidth = [XHMessageBubbleView neededWidthForText:text];
+    
+    CGSize textSize = [SETextView frameRectWithAttributtedString:[[XHMessageBubbleHelper sharedMessageBubbleHelper] bubbleAttributtedStringWithText:text] constraintSize:CGSizeMake(maxWidth, MAXFLOAT) lineSpacing:kXHTextLineSpacing font:[[XHMessageBubbleView appearance] font]].size;
+    return CGSizeMake((dyWidth > textSize.width ? textSize.width : dyWidth) + kBubblePaddingRight * 2 + kXHArrowMarginWidth, textSize.height);
 }
 
 + (CGSize)neededSizeForPhoto:(UIImage *)photo {
@@ -76,9 +65,10 @@
     return photoSize;
 }
 
-+ (CGSize)neededSizeForVoicePath:(NSString *)voicePath {
++ (CGSize)neededSizeForVoicePath:(NSString *)voicePath voiceDuration:(NSString *)voiceDuration {
     // 这里的100只是暂时固定，到时候会根据一个函数来计算
-    CGSize voiceSize = CGSizeMake(100, [XHMessageInputView textViewLineHeight]);
+    float gapDuration = (!voiceDuration || voiceDuration.length == 0 ? -1 : [voiceDuration floatValue] - 1.0f);
+    CGSize voiceSize = CGSizeMake(100 + (gapDuration > 0 ? (120.0 / (60 - 1) * gapDuration) : 0), [XHMessageInputView textViewLineHeight]);
     return voiceSize;
 }
 
@@ -90,28 +80,28 @@
 + (CGSize)getBubbleFrameWithMessage:(id <XHMessageModel>)message {
     CGSize bubbleSize;
     switch (message.messageMediaType) {
-        case XHBubbleMessageText: {
+        case XHBubbleMessageMediaTypeText: {
             bubbleSize = [XHMessageBubbleView neededSizeForText:message.text];
             break;
         }
-        case XHBubbleMessagePhoto: {
+        case XHBubbleMessageMediaTypePhoto: {
             bubbleSize = [XHMessageBubbleView neededSizeForPhoto:message.photo];
             break;
         }
-        case XHBubbleMessageVideo: {
+        case XHBubbleMessageMediaTypeVideo: {
             bubbleSize = [XHMessageBubbleView neededSizeForPhoto:message.videoConverPhoto];
             break;
         }
-        case XHBubbleMessageVoice: {
+        case XHBubbleMessageMediaTypeVoice: {
             // 这里的宽度是不定的，高度是固定的，根据需要根据语音长短来定制啦
-            bubbleSize = CGSizeMake(100, [XHMessageInputView textViewLineHeight]);
+            bubbleSize = [XHMessageBubbleView neededSizeForVoicePath:message.voicePath voiceDuration:message.voiceDuration];
             break;
         }
-        case XHBubbleMessageFace:
+        case XHBubbleMessageMediaTypeEmotion:
             // 是否固定大小呢？
             bubbleSize = CGSizeMake(100, 100);
             break;
-        case XHBubbleMessageLocalPosition:
+        case XHBubbleMessageMediaTypeLocalPosition:
             // 固定大小，必须的
             bubbleSize = CGSizeMake(119, 119);
             break;
@@ -137,13 +127,14 @@
 
 #pragma mark - Getters
 
+
 - (CGRect)bubbleFrame {
     CGSize bubbleSize = [XHMessageBubbleView getBubbleFrameWithMessage:self.message];
     
     return CGRectIntegral(CGRectMake((self.message.bubbleMessageType == XHBubbleMessageTypeSending ? CGRectGetWidth(self.bounds) - bubbleSize.width : 0.0f),
                                      kMarginTop,
                                      bubbleSize.width,
-                                     bubbleSize.height + kMarginBottom));
+                                     bubbleSize.height + kMarginTop + kMarginBottom));
 }
 
 #pragma mark - Life cycle
@@ -159,10 +150,13 @@
 - (void)configureBubbleImageView:(id <XHMessageModel>)message {
     XHBubbleMessageMediaType currentType = message.messageMediaType;
     
+    _voiceDurationLabel.hidden = YES;
     switch (currentType) {
-        case XHBubbleMessageText:
-        case XHBubbleMessageVoice:
-        case XHBubbleMessageFace: {
+        case XHBubbleMessageMediaTypeVoice: {
+            _voiceDurationLabel.hidden = NO;
+        }
+        case XHBubbleMessageMediaTypeText:
+        case XHBubbleMessageMediaTypeEmotion: {
             _bubbleImageView.image = [XHMessageBubbleFactory bubbleImageViewForType:message.bubbleMessageType style:XHBubbleImageViewStyleWeChat meidaType:message.messageMediaType];
             // 只要是文本、语音、第三方表情，背景的气泡都不能隐藏
             _bubbleImageView.hidden = NO;
@@ -171,17 +165,18 @@
             _bubblePhotoImageView.hidden = YES;
             
             
-            if (currentType == XHBubbleMessageText) {
+            if (currentType == XHBubbleMessageMediaTypeText) {
                 // 如果是文本消息，那文本消息的控件需要显示
                 _displayTextView.hidden = NO;
                 // 那语言的gif动画imageView就需要隐藏了
                 _animationVoiceImageView.hidden = YES;
+                _emotionImageView.hidden = YES;
             } else {
                 // 那如果不文本消息，必须把文本消息的控件隐藏了啊
                 _displayTextView.hidden = YES;
                 
                 // 对语音消息的进行特殊处理，第三方表情可以直接利用背景气泡的ImageView控件
-                if (currentType == XHBubbleMessageVoice) {
+                if (currentType == XHBubbleMessageMediaTypeVoice) {
                     [_animationVoiceImageView removeFromSuperview];
                     _animationVoiceImageView = nil;
                     
@@ -190,25 +185,29 @@
                     _animationVoiceImageView = animationVoiceImageView;
                     _animationVoiceImageView.hidden = NO;
                 } else {
+                    _emotionImageView.hidden = NO;
+                    
+                    _bubbleImageView.hidden = YES;
                     _animationVoiceImageView.hidden = YES;
                 }
             }
             break;
         }
-        case XHBubbleMessagePhoto:
-        case XHBubbleMessageVideo:
-        case XHBubbleMessageLocalPosition: {
+        case XHBubbleMessageMediaTypePhoto:
+        case XHBubbleMessageMediaTypeVideo:
+        case XHBubbleMessageMediaTypeLocalPosition: {
             // 只要是图片和视频消息，必须把尖嘴显示控件显示出来
             _bubblePhotoImageView.hidden = NO;
             
-            _videoPlayImageView.hidden = (currentType != XHBubbleMessageVideo);
+            _videoPlayImageView.hidden = (currentType != XHBubbleMessageMediaTypeVideo);
             
-            _geolocationsLabel.hidden = (currentType != XHBubbleMessageLocalPosition);
+            _geolocationsLabel.hidden = (currentType != XHBubbleMessageMediaTypeLocalPosition);
             
             // 那其他的控件都必须隐藏
             _displayTextView.hidden = YES;
             _bubbleImageView.hidden = YES;
             _animationVoiceImageView.hidden = YES;
+            _emotionImageView.hidden = YES;
             break;
         }
         default:
@@ -218,24 +217,26 @@
 
 - (void)configureMessageDisplayMediaWithMessage:(id <XHMessageModel>)message {
     switch (message.messageMediaType) {
-        case XHBubbleMessageText:
-            _displayTextView.attributedText = [[NSAttributedString alloc] initWithString:[message text]];
+        case XHBubbleMessageMediaTypeText:
+            _displayTextView.attributedText = [[XHMessageBubbleHelper sharedMessageBubbleHelper] bubbleAttributtedStringWithText:[message text]];
             break;
-        case XHBubbleMessagePhoto:
+        case XHBubbleMessageMediaTypePhoto:
             [_bubblePhotoImageView configureMessagePhoto:message.photo thumbnailUrl:message.thumbnailUrl originPhotoUrl:message.originPhotoUrl onBubbleMessageType:self.message.bubbleMessageType];
             break;
-        case XHBubbleMessageVideo:
+        case XHBubbleMessageMediaTypeVideo:
             [_bubblePhotoImageView configureMessagePhoto:message.videoConverPhoto thumbnailUrl:message.thumbnailUrl originPhotoUrl:message.originPhotoUrl onBubbleMessageType:self.message.bubbleMessageType];
             break;
-        case XHBubbleMessageVoice:
+        case XHBubbleMessageMediaTypeVoice:
             break;
-        case XHBubbleMessageFace:
+        case XHBubbleMessageMediaTypeEmotion:
             // 直接设置GIF
             if (message.emotionPath) {
-                _bubbleImageView.image = [UIImage animatedImageWithAnimatedGIFURL:[NSURL fileURLWithPath:message.emotionPath]];
+                NSData *animatedData = [NSData dataWithContentsOfFile:message.emotionPath];
+                FLAnimatedImage *animatedImage = [[FLAnimatedImage alloc] initWithAnimatedGIFData:animatedData];
+                _emotionImageView.animatedImage = animatedImage;
             }
             break;
-        case XHBubbleMessageLocalPosition:
+        case XHBubbleMessageMediaTypeLocalPosition:
             [_bubblePhotoImageView configureMessagePhoto:message.localPositionPhoto thumbnailUrl:nil originPhotoUrl:nil onBubbleMessageType:self.message.bubbleMessageType];
             
             _geolocationsLabel.text = message.geolocations;
@@ -257,7 +258,7 @@
         // 1、初始化气泡的背景
         if (!_bubbleImageView) {
             //bubble image
-            UIImageView *bubbleImageView = [[UIImageView alloc] init];
+            FLAnimatedImageView *bubbleImageView = [[FLAnimatedImageView alloc] init];
             bubbleImageView.frame = self.bounds;
             bubbleImageView.userInteractionEnabled = YES;
             [self addSubview:bubbleImageView];
@@ -268,12 +269,11 @@
         if (!_displayTextView) {
             SETextView *displayTextView = [[SETextView alloc] initWithFrame:CGRectZero];
             displayTextView.backgroundColor = [UIColor clearColor];
-            displayTextView.selectable = YES;
+            displayTextView.selectable = NO;
             displayTextView.lineSpacing = kXHTextLineSpacing;
-            displayTextView.font = [UIFont systemFontOfSize:kXHTextFontSize];
+            displayTextView.font = [[XHMessageBubbleView appearance] font];
             displayTextView.showsEditingMenuAutomatically = NO;
             displayTextView.highlighted = NO;
-            displayTextView.selectable = NO;
             [self addSubview:displayTextView];
             _displayTextView = displayTextView;
         }
@@ -301,6 +301,25 @@
                 _geolocationsLabel = geolocationsLabel;
             }
         }
+        
+        // 4、初始化显示语音时长的label
+        if (!_voiceDurationLabel) {
+            UILabel *voiceDurationLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, 15, 30, 30)];
+            voiceDurationLabel.textColor = [UIColor lightGrayColor];
+            voiceDurationLabel.backgroundColor = [UIColor clearColor];
+            voiceDurationLabel.font = [UIFont systemFontOfSize:13.f];
+            voiceDurationLabel.textAlignment = NSTextAlignmentRight;
+            voiceDurationLabel.hidden = YES;
+            [self addSubview:voiceDurationLabel];
+            _voiceDurationLabel = voiceDurationLabel;
+        }
+        
+        // 5、初始化显示gif表情的控件
+        if (!_emotionImageView) {
+            FLAnimatedImageView *emotionImageView = [[FLAnimatedImageView alloc] initWithFrame:CGRectZero];
+            [self addSubview:emotionImageView];
+            _emotionImageView = emotionImageView;
+        }
     }
     return self;
 }
@@ -315,6 +334,10 @@
     _bubblePhotoImageView = nil;
     
     _animationVoiceImageView = nil;
+    
+    _voiceDurationLabel = nil;
+    
+    _emotionImageView = nil;
     
     _videoPlayImageView = nil;
     
@@ -331,9 +354,9 @@
     CGRect bubbleFrame = [self bubbleFrame];
     
     switch (currentType) {
-        case XHBubbleMessageText:
-        case XHBubbleMessageVoice:
-        case XHBubbleMessageFace: {
+        case XHBubbleMessageMediaTypeText:
+        case XHBubbleMessageMediaTypeVoice:
+        case XHBubbleMessageMediaTypeEmotion: {
             self.bubbleImageView.frame = bubbleFrame;
             
             CGFloat textX = CGRectGetMinX(bubbleFrame) + kBubblePaddingRight;
@@ -345,18 +368,23 @@
             CGRect textFrame = CGRectMake(textX,
                                           CGRectGetMinY(bubbleFrame) + kPaddingTop,
                                           CGRectGetWidth(bubbleFrame) - kBubblePaddingRight * 2,
-                                          bubbleFrame.size.height - kMarginTop - kPaddingBottom);
+                                          bubbleFrame.size.height - kMarginTop - kMarginBottom);
             
             self.displayTextView.frame = CGRectIntegral(textFrame);
             
             CGRect animationVoiceImageViewFrame = self.animationVoiceImageView.frame;
             animationVoiceImageViewFrame.origin = CGPointMake((self.message.bubbleMessageType == XHBubbleMessageTypeReceiving ? (bubbleFrame.origin.x + kVoiceMargin) : (bubbleFrame.origin.x + CGRectGetWidth(bubbleFrame) - kVoiceMargin - CGRectGetWidth(animationVoiceImageViewFrame))), 17);
             self.animationVoiceImageView.frame = animationVoiceImageViewFrame;
+            
+            [self resetVoiceDurationLabelFrameWithBubbleFrame:bubbleFrame];
+            
+            self.emotionImageView.frame = bubbleFrame;
+            
             break;
         }
-        case XHBubbleMessagePhoto:
-        case XHBubbleMessageVideo:
-        case XHBubbleMessageLocalPosition: {
+        case XHBubbleMessageMediaTypePhoto:
+        case XHBubbleMessageMediaTypeVideo:
+        case XHBubbleMessageMediaTypeLocalPosition: {
             CGRect photoImageViewFrame = CGRectMake(bubbleFrame.origin.x - 2, 0, bubbleFrame.size.width, bubbleFrame.size.height);
             self.bubblePhotoImageView.frame = photoImageViewFrame;
             
@@ -370,6 +398,14 @@
         default:
             break;
     }
+}
+
+- (void)resetVoiceDurationLabelFrameWithBubbleFrame:(CGRect)bubbleFrame {
+    CGRect voiceFrame = _voiceDurationLabel.frame;
+    voiceFrame.origin.x = (self.message.bubbleMessageType == XHBubbleMessageTypeSending ? bubbleFrame.origin.x - _voiceDurationLabel.frame.size.width : bubbleFrame.origin.x + bubbleFrame.size.width);
+    _voiceDurationLabel.frame = voiceFrame;
+    
+    _voiceDurationLabel.textAlignment = (self.message.bubbleMessageType == XHBubbleMessageTypeSending ? NSTextAlignmentRight : NSTextAlignmentLeft);
 }
 
 @end

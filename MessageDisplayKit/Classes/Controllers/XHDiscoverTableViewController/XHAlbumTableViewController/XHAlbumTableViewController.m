@@ -68,7 +68,7 @@
     return _photographyHelper;
 }
 
-#pragma mark - DataSource Manager
+#pragma mark - DataSource
 
 - (void)loadDataSource {
     WEAKSELF
@@ -83,7 +83,7 @@
     });
 }
 
-#pragma Life Cycle
+#pragma mark - Life Cycle
 
 - (void)viewDidAppear:(BOOL)animated {
     [super viewDidAppear:animated];
@@ -94,7 +94,7 @@
     // Do any additional setup after loading the view.
     self.title = NSLocalizedStringFromTable(@"Album", @"MessageDisplayKitString", @"朋友圈");
     
-    [self configureBarbuttonItemStyle:kXHBarbuttonItemCameraStyle action:^{
+    [self configureBarbuttonItemStyle:XHBarbuttonItemStyleCamera action:^{
         DLog(@"发送朋友圈");
     }];
     

@@ -72,21 +72,6 @@
     
 }
 
-#pragma mark - Animation Delegate
-
-- (void)animationDidStart:(CAAnimation *)anim {
-    self.shakeUpLineImageView.hidden = NO;
-    self.shakeDownLineImageView.hidden = NO;
-}
-
-- (void)animationDidStop:(CAAnimation *)anim finished:(BOOL)flag {
-    self.shakeUpLineImageView.hidden = flag;
-    self.shakeDownLineImageView.hidden = flag;
-    if (flag) {
-        [self pullServerNearUsers];
-    }
-}
-
 #pragma mark - Propertys
 
 - (UIImageView *)shakeUpImageView {
@@ -151,7 +136,7 @@
         _peopleButton.selected = YES;
         [_peopleButton addTarget:self action:@selector(buttonClicked:) forControlEvents:UIControlEventTouchUpInside];
         
-        [_peopleButton setTitlePositionWithType:kXHTitleBottomType];
+        [_peopleButton setTitlePositionWithType:XHButtonTitlePostionTypeBottom];
     }
     return _peopleButton;
 }
@@ -166,12 +151,12 @@
         [_musicButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
         [_musicButton addTarget:self action:@selector(buttonClicked:) forControlEvents:UIControlEventTouchUpInside];
         
-        [_musicButton setTitlePositionWithType:kXHTitleBottomType];
+        [_musicButton setTitlePositionWithType:XHButtonTitlePostionTypeBottom];
     }
     return _musicButton;
 }
 
-#pragma Life Cycle
+#pragma mark - Life Cycle
 
 - (void)viewDidLoad {
     [super viewDidLoad];
@@ -182,7 +167,7 @@
     
     self.title = NSLocalizedStringFromTable(@"Shake", @"MessageDisplayKitString", @"摇一摇");
     
-    [self configureBarbuttonItemStyle:kXHBarbuttonItemSettingStyle action:^{
+    [self configureBarbuttonItemStyle:XHBarbuttonItemStyleSetting action:^{
         DLog(@"摇一摇设置");
     }];
     
@@ -208,6 +193,21 @@
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];
     // Dispose of any resources that can be recreated.
+}
+
+#pragma mark - Animation Delegate
+
+- (void)animationDidStart:(CAAnimation *)anim {
+    self.shakeUpLineImageView.hidden = NO;
+    self.shakeDownLineImageView.hidden = NO;
+}
+
+- (void)animationDidStop:(CAAnimation *)anim finished:(BOOL)flag {
+    self.shakeUpLineImageView.hidden = flag;
+    self.shakeDownLineImageView.hidden = flag;
+    if (flag) {
+        [self pullServerNearUsers];
+    }
 }
 
 #pragma mark - Event Delegate

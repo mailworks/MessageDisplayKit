@@ -16,7 +16,7 @@
 #import "XHProfileTableViewController.h"
 
 #import "XHMacro.h"
-
+//
 @implementation AppDelegate
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
@@ -72,6 +72,7 @@
     self.window.rootViewController = rootTabBarController;
     
     [self.window makeKeyAndVisible];
+    
     return YES;
 }
 

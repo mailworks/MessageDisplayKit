@@ -20,7 +20,7 @@
         self.sender = sender;
         self.timestamp = timestamp;
         
-        self.messageMediaType = XHBubbleMessageText;
+        self.messageMediaType = XHBubbleMessageMediaTypeText;
     }
     return self;
 }
@@ -50,7 +50,7 @@
         self.sender = sender;
         self.timestamp = timestamp;
         
-        self.messageMediaType = XHBubbleMessagePhoto;
+        self.messageMediaType = XHBubbleMessageMediaTypePhoto;
     }
     return self;
 }
@@ -80,7 +80,7 @@
         self.sender = sender;
         self.timestamp = timestamp;
         
-        self.messageMediaType = XHBubbleMessageVideo;
+        self.messageMediaType = XHBubbleMessageMediaTypeVideo;
     }
     return self;
 }
@@ -88,26 +88,29 @@
 /**
  *  初始化语音类型的消息
  *
- *  @param voicePath 目标语音的本地路径
- *  @param voiceUrl  目标语音在服务器的地址
- *  @param sender    发送者
- *  @param date      发送时间
+ *  @param voicePath        目标语音的本地路径
+ *  @param voiceUrl         目标语音在服务器的地址
+ *  @param voiceDuration    目标语音的时长
+ *  @param sender           发送者
+ *  @param date             发送时间
  *
  *  @return 返回Message model 对象
  */
 - (instancetype)initWithVoicePath:(NSString *)voicePath
                          voiceUrl:(NSString *)voiceUrl
+                    voiceDuration:(NSString *)voiceDuration
                            sender:(NSString *)sender
-                             timestamp:(NSDate *)timestamp {
+                        timestamp:(NSDate *)timestamp {
     self = [super init];
     if (self) {
         self.voicePath = voicePath;
-        self.videoUrl = voiceUrl;
+        self.voiceUrl = voiceUrl;
+        self.voiceDuration = voiceDuration;
         
         self.sender = sender;
         self.timestamp = timestamp;
         
-        self.messageMediaType = XHBubbleMessageVoice;
+        self.messageMediaType = XHBubbleMessageMediaTypeVoice;
     }
     return self;
 }
@@ -122,7 +125,7 @@
         self.sender = sender;
         self.timestamp = timestamp;
         
-        self.messageMediaType = XHBubbleMessageFace;
+        self.messageMediaType = XHBubbleMessageMediaTypeEmotion;
     }
     return self;
 }
@@ -141,7 +144,7 @@
         self.sender = sender;
         self.timestamp = timestamp;
         
-        self.messageMediaType = XHBubbleMessageLocalPosition;
+        self.messageMediaType = XHBubbleMessageMediaTypeLocalPosition;
     }
     return self;
 }
@@ -159,6 +162,7 @@
     
     _voicePath = nil;
     _voiceUrl = nil;
+    _voiceDuration = nil;
     
     _emotionPath = nil;
     
@@ -191,6 +195,7 @@
         
         _voicePath = [aDecoder decodeObjectForKey:@"voicePath"];
         _voiceUrl = [aDecoder decodeObjectForKey:@"voiceUrl"];
+        _voiceDuration = [aDecoder decodeObjectForKey:@"voiceDuration"];
         
         _emotionPath = [aDecoder decodeObjectForKey:@"emotionPath"];
         
@@ -220,9 +225,7 @@
     
     [aCoder encodeObject:self.voicePath forKey:@"voicePath"];
     [aCoder encodeObject:self.voiceUrl forKey:@"voiceUrl"];
-    
-    [aCoder encodeObject:self.voicePath forKey:@"voicePath"];
-    [aCoder encodeObject:self.voiceUrl forKey:@"voiceUrl"];
+    [aCoder encodeObject:self.voiceDuration forKey:@"voiceDuration"];
     
     [aCoder encodeObject:self.emotionPath forKey:@"emotionPath"];
     
@@ -238,32 +241,33 @@
 
 - (id)copyWithZone:(NSZone *)zone {
     switch (self.messageMediaType) {
-        case XHBubbleMessageText:
+        case XHBubbleMessageMediaTypeText:
             return [[[self class] allocWithZone:zone] initWithText:[self.text copy]
                                                             sender:[self.sender copy]
                                                               timestamp:[self.timestamp copy]];
-        case XHBubbleMessagePhoto:
+        case XHBubbleMessageMediaTypePhoto:
             return [[[self class] allocWithZone:zone] initWithPhoto:[self.photo copy]
                                                        thumbnailUrl:[self.thumbnailUrl copy]
                                                      originPhotoUrl:[self.originPhotoUrl copy]
                                                              sender:[self.sender copy]
                                                                timestamp:[self.timestamp copy]];
-        case XHBubbleMessageVideo:
+        case XHBubbleMessageMediaTypeVideo:
             return [[[self class] allocWithZone:zone] initWithVideoConverPhoto:[self.videoConverPhoto copy]
                                                                      videoPath:[self.videoPath copy]
                                                                       videoUrl:[self.videoUrl copy]
                                                                         sender:[self.sender copy]
                                                                           timestamp:[self.timestamp copy]];
-        case XHBubbleMessageVoice:
+        case XHBubbleMessageMediaTypeVoice:
             return [[[self class] allocWithZone:zone] initWithVoicePath:[self.voicePath copy]
-                                                                     voiceUrl:[self.voiceUrl copy]
-                                                                        sender:[self.sender copy]
-                                                                          timestamp:[self.timestamp copy]];
-        case XHBubbleMessageFace:
+                                                               voiceUrl:[self.voiceUrl copy]
+                                                          voiceDuration:[self.voiceDuration copy]
+                                                                 sender:[self.sender copy]
+                                                              timestamp:[self.timestamp copy]];
+        case XHBubbleMessageMediaTypeEmotion:
             return [[[self class] allocWithZone:zone] initWithEmotionPath:[self.emotionPath copy]
                                                                 sender:[self.sender copy]
                                                                   timestamp:[self.timestamp copy]];
-        case XHBubbleMessageLocalPosition:
+        case XHBubbleMessageMediaTypeLocalPosition:
             return [[[self class] allocWithZone:zone] initWithLocalPositionPhoto:[self.localPositionPhoto copy]
                                                                     geolocations:self.geolocations
                                                                         location:[self.location copy]

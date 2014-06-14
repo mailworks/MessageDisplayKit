@@ -11,7 +11,9 @@
 #import "XHBaseTableViewCell.h"
 
 #import "XHMessageBubbleView.h"
-#import "UIView+XHNetworkImage.h"
+#import "UIView+XHRemoteImage.h"
+
+#import "LKBadgeView.h"
 
 @class XHMessageTableViewCell;
 
@@ -68,7 +70,7 @@
 /**
  *  时间轴Label
  */
-@property (nonatomic, weak, readonly) UILabel *timestampLabel;
+@property (nonatomic, weak, readonly) LKBadgeView *timestampLabel;
 
 /**
  *  Cell所在的位置，用于Cell delegate回调
