@@ -5,34 +5,34 @@
 	<key>IDESourceControlProjectFavoriteDictionaryKey</key>
 	<false/>
 	<key>IDESourceControlProjectIdentifier</key>
-	<string>6F521D90-73BD-4D9B-87CF-F312CEDE533C</string>
+	<string>FBF60D27-AC49-4FC1-BD1F-7C7F59F8DD57</string>
 	<key>IDESourceControlProjectName</key>
 	<string>MessageDisplayKitWorkSpace</string>
 	<key>IDESourceControlProjectOriginsDictionary</key>
 	<dict>
-		<key>48E3A689-B44F-429E-9904-4788BE9F5312</key>
-		<string>https://github.com/xhzengAIB/MessageDisplayKit.git</string>
+		<key>801935BB-39C8-43E2-9D56-2568557539BC</key>
+		<string>ssh://github.com/mailworks/MessageDisplayKit.git</string>
 	</dict>
 	<key>IDESourceControlProjectPath</key>
 	<string>Example/MessageDisplayKitWorkSpace.xcworkspace</string>
 	<key>IDESourceControlProjectRelativeInstallPathDictionary</key>
 	<dict>
-		<key>48E3A689-B44F-429E-9904-4788BE9F5312</key>
+		<key>801935BB-39C8-43E2-9D56-2568557539BC</key>
 		<string>../..</string>
 	</dict>
 	<key>IDESourceControlProjectURL</key>
-	<string>https://github.com/xhzengAIB/MessageDisplayKit.git</string>
+	<string>ssh://github.com/mailworks/MessageDisplayKit.git</string>
 	<key>IDESourceControlProjectVersion</key>
 	<integer>110</integer>
 	<key>IDESourceControlProjectWCCIdentifier</key>
-	<string>48E3A689-B44F-429E-9904-4788BE9F5312</string>
+	<string>801935BB-39C8-43E2-9D56-2568557539BC</string>
 	<key>IDESourceControlProjectWCConfigurations</key>
 	<array>
 		<dict>
 			<key>IDESourceControlRepositoryExtensionIdentifierKey</key>
 			<string>public.vcs.git</string>
 			<key>IDESourceControlWCCIdentifierKey</key>
-			<string>48E3A689-B44F-429E-9904-4788BE9F5312</string>
+			<string>801935BB-39C8-43E2-9D56-2568557539BC</string>
 			<key>IDESourceControlWCCName</key>
 			<string>MessageDisplayKit</string>
 		</dict>
